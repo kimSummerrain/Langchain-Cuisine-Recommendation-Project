@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>나의 추천 히스토리</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .short-summary {
+      display: inline;
+    }
+    .full-summary {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <div class="container mt-5">
+    <h2 class="mb-4">나의 요리 추천 히스토리</h2>
+    <div id="history-container" class="row">
+      <!-- 카드들이 여기에 추가됩니다 -->
+    </div>
+    <div id="empty-message" class="text-center text-muted" style="display: none;">
+      히스토리가 아직 없습니다. 추천을 먼저 받아보세요!
+    </div>
+  </div>
+
+  <script>
+    async function loadHistory() {
+      const response = await fetch("/history");
+      const data = await response.json();
+
+      const container = document.getElementById("history-container");
+      const emptyMsg = document.getElementById("empty-message");
+      container.innerHTML = "";
+
+      if (data.length === 0) {
+        emptyMsg.style.display = "block";
+        return;
+      }
+
+      emptyMsg.style.display = "none";
+
+      data.forEach((item, index) => {
+        const summary = stripHtml(item.summary);
+        const shortSummary = summary.length > 100 ? summary.slice(0, 100) + "..." : summary;
+
+        const card = document.createElement("div");
+        card.className = "col-md-4";
+
+        card.innerHTML = `
+          <div class="card mb-4 shadow-sm h-100">
+            <div class="card-body">
+              <h5 class="card-title">${item.title || "제목 없음"}</h5>
+              <p class="card-text">
+                <span class="short-summary" id="short-${index}">${shortSummary}</span>
+                <span class="full-summary" id="full-${index}">${summary}</span>
+              </p>
+              ${summary.length > 100 ? `<button class="btn btn-sm btn-outline-secondary" onclick="toggleSummary(${index})" id="toggle-btn-${index}">전체 보기</button>` : ""}
+              <p class="text-muted small mt-2">${new Date(item.created_at).toLocaleString()}</p>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function toggleSummary(index) {
+      const shortEl = document.getElementById(`short-${index}`);
+      const fullEl = document.getElementById(`full-${index}`);
+      const btn = document.getElementById(`toggle-btn-${index}`);
+
+      const isShortHidden = shortEl.style.display === "none";
+
+      shortEl.style.display = isShortHidden ? "inline" : "none";
+      fullEl.style.display = isShortHidden ? "none" : "inline";
+      btn.textContent = isShortHidden ? "전체 보기" : "간략히 보기";
+    }
+
+    function stripHtml(html) {
+      const div = document.createElement("div");
+      div.innerHTML = html;
+      return div.textContent || div.innerText || "";
+    }
+
+    window.onload = loadHistory;
+  </script>
+</body>
+</html>
